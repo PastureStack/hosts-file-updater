@@ -1,23 +1,29 @@
-TARGETS := $(shell ls scripts)
+VERSION ?= $(shell ./scripts/version)
+IMAGE_NAME ?= ghcr.io/pasturestack/hosts-file-updater
+GO_VERSION ?= 1.26.5
+UBUNTU_VERSION ?= 26.04
+DOCKER_BUILD_NETWORK ?= default
 
-.dapper:
-	@echo Downloading dapper
-	@curl -sL https://releases.rancher.com/dapper/latest/dapper-`uname -s`-`uname -m` > .dapper.tmp
-	@@chmod +x .dapper.tmp
-	@./.dapper.tmp -v
-	@mv .dapper.tmp .dapper
+ci: test image
 
-$(TARGETS): .dapper
-	./.dapper $@
+test:
+	docker build --target test \
+		--network $(DOCKER_BUILD_NETWORK) \
+		--build-arg GO_VERSION=$(GO_VERSION) \
+		--build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) \
+		-t $(IMAGE_NAME)-test:$(VERSION) .
 
-trash: .dapper
-	./.dapper -m bind trash
+image:
+	docker build --target runtime \
+		--network $(DOCKER_BUILD_NETWORK) \
+		--build-arg GO_VERSION=$(GO_VERSION) \
+		--build-arg UBUNTU_VERSION=$(UBUNTU_VERSION) \
+		--build-arg VERSION=$(VERSION) \
+		-t $(IMAGE_NAME):$(VERSION) .
 
-trash-keep: .dapper
-	./.dapper -m bind trash -k
-
-deps: trash
+push: image
+	docker push $(IMAGE_NAME):$(VERSION)
 
 .DEFAULT_GOAL := ci
 
-.PHONY: $(TARGETS)
+.PHONY: ci test image push

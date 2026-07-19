@@ -1,4 +1,6 @@
-./bin
-./.dapper
-./dist
-./.trash-cache
+.git
+.github
+bin
+dist
+vendor
+*.log

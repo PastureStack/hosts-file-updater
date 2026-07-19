@@ -1,32 +1,31 @@
 package updater
 
 import (
-	"io/ioutil"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 
-	log "github.com/Sirupsen/logrus"
-	"github.com/rancher/go-rancher-metadata/metadata"
+	"github.com/PastureStack/hosts-file-updater/internal/metadata"
 )
 
 var upd *Updater
 var client *fakeMetadataClient
+var testHostsFile string
 
 func init() {
 	client = &fakeMetadataClient{
 		hosts: []metadata.Host{
 			{
 				Hostname: "Host1",
-				AgentIP:  "IP1",
+				AgentIP:  "10.0.0.1",
 			},
 		},
 		lock: &sync.Mutex{},
 	}
 
 	upd = &Updater{
-		rancherHosts:   make(map[string]string),
+		knownHosts:     make(map[string]string),
 		MetadataClient: client,
 	}
 }
@@ -41,16 +40,18 @@ func (f *fakeMetadataClient) GetHosts() ([]metadata.Host, error) {
 }
 
 func TestMain(m *testing.M) {
-	tmpFile, err := ioutil.TempFile("", "hosts")
+	tmpFile, err := os.CreateTemp("", "hosts")
 	if err != nil {
-		log.Fatalf("Error running test, Could not create Temp file [%v]", err)
+		panic(err)
 	}
 	upd.origData = "127.0.0.1    localhost localhost-ip4"
-	hostsOrigFile = tmpFile.Name()
+	testHostsFile = tmpFile.Name()
+	upd.HostsFile = testHostsFile
+	_ = tmpFile.Close()
 
-	defer os.Remove(hostsOrigFile)
-
-	os.Exit(m.Run())
+	code := m.Run()
+	_ = os.Remove(testHostsFile)
+	os.Exit(code)
 }
 
 func TestDetectsHostIpChange(t *testing.T) {
@@ -58,11 +59,11 @@ func TestDetectsHostIpChange(t *testing.T) {
 	client.hosts = []metadata.Host{
 		{
 			Hostname: "Host1",
-			AgentIP:  "IP1",
+			AgentIP:  "10.0.0.1",
 		},
 	}
 	upd.Run("")
-	hostsMap, err := parseHostsOrigFile(hostsOrigFile)
+	hostsMap, err := parseHostsOrigFile(testHostsFile)
 	client.lock.Unlock()
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -74,8 +75,8 @@ func TestDetectsHostIpChange(t *testing.T) {
 	if !ok {
 		t.Fatalf("Entry for Host1 not found after running updater service with Host1 data")
 	}
-	if v != "IP1" {
-		t.Fatalf("Entry for Host1 not found to be IP1 as set, after running updater service with Host1 data")
+	if v != "10.0.0.1" {
+		t.Fatalf("Entry for Host1 not found to be 10.0.0.1 as set, after running updater service with Host1 data")
 	}
 	v, ok = hostsMap["localhost"]
 	if !ok {
@@ -88,11 +89,11 @@ func TestDetectsHostIpChange(t *testing.T) {
 	client.hosts = []metadata.Host{
 		{
 			Hostname: "Host1",
-			AgentIP:  "IP2",
+			AgentIP:  "10.0.0.2",
 		},
 	}
 	upd.Run("")
-	hostsMap, err = parseHostsOrigFile(hostsOrigFile)
+	hostsMap, err = parseHostsOrigFile(testHostsFile)
 	client.lock.Unlock()
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -104,8 +105,8 @@ func TestDetectsHostIpChange(t *testing.T) {
 	if !ok {
 		t.Fatalf("Entry for Host1 not found after running updater service with Host1 data")
 	}
-	if v != "IP2" {
-		t.Fatalf("Entry for Host1 not found to be IP2 as set, after running updater service with Host1 data")
+	if v != "10.0.0.2" {
+		t.Fatalf("Entry for Host1 not found to be 10.0.0.2 as set, after running updater service with Host1 data")
 	}
 	v, ok = hostsMap["localhost"]
 	if !ok {
@@ -121,11 +122,11 @@ func TestDetectsHostAddition(t *testing.T) {
 	client.hosts = []metadata.Host{
 		{
 			Hostname: "Host1",
-			AgentIP:  "IP1",
+			AgentIP:  "10.0.0.1",
 		},
 	}
 	upd.Run("")
-	hostsMap, err := parseHostsOrigFile(hostsOrigFile)
+	hostsMap, err := parseHostsOrigFile(testHostsFile)
 	client.lock.Unlock()
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -137,8 +138,8 @@ func TestDetectsHostAddition(t *testing.T) {
 	if !ok {
 		t.Fatalf("Entry for Host1 not found after running updater service with Host1 data")
 	}
-	if v != "IP1" {
-		t.Fatalf("Entry for Host1 not found to be IP1 as set, after running updater service with Host1 data")
+	if v != "10.0.0.1" {
+		t.Fatalf("Entry for Host1 not found to be 10.0.0.1 as set, after running updater service with Host1 data")
 	}
 	v, ok = hostsMap["localhost"]
 	if !ok {
@@ -151,15 +152,15 @@ func TestDetectsHostAddition(t *testing.T) {
 	client.hosts = []metadata.Host{
 		{
 			Hostname: "Host1",
-			AgentIP:  "IP1",
+			AgentIP:  "10.0.0.1",
 		},
 		{
 			Hostname: "Host2",
-			AgentIP:  "IP2",
+			AgentIP:  "10.0.0.2",
 		},
 	}
 	upd.Run("")
-	hostsMap, err = parseHostsOrigFile(hostsOrigFile)
+	hostsMap, err = parseHostsOrigFile(testHostsFile)
 	client.lock.Unlock()
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -171,15 +172,15 @@ func TestDetectsHostAddition(t *testing.T) {
 	if !ok {
 		t.Fatalf("Entry for Host1 not found after running updater service with Host1 data")
 	}
-	if v != "IP1" {
-		t.Fatalf("Entry for Host1 not found to be IP2 as set, after running updater service with Host1 data")
+	if v != "10.0.0.1" {
+		t.Fatalf("Entry for Host1 not found to be 10.0.0.1 as set, after running updater service with Host1 data")
 	}
 	v, ok = hostsMap["Host2"]
 	if !ok {
 		t.Fatalf("Entry for Host2 not found after running updater service with Host2 data")
 	}
-	if v != "IP2" {
-		t.Fatalf("Entry for Host1 not found to be IP2 as set, after running updater service with Host1 data")
+	if v != "10.0.0.2" {
+		t.Fatalf("Entry for Host2 not found to be 10.0.0.2 as set, after running updater service with Host2 data")
 	}
 	v, ok = hostsMap["localhost"]
 	if !ok {
@@ -195,15 +196,15 @@ func TestDetectsHostDeletion(t *testing.T) {
 	client.hosts = []metadata.Host{
 		{
 			Hostname: "Host1",
-			AgentIP:  "IP1",
+			AgentIP:  "10.0.0.1",
 		},
 		{
 			Hostname: "Host2",
-			AgentIP:  "IP2",
+			AgentIP:  "10.0.0.2",
 		},
 	}
 	upd.Run("")
-	hostsMap, err := parseHostsOrigFile(hostsOrigFile)
+	hostsMap, err := parseHostsOrigFile(testHostsFile)
 	client.lock.Unlock()
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -215,15 +216,15 @@ func TestDetectsHostDeletion(t *testing.T) {
 	if !ok {
 		t.Fatalf("Entry for Host1 not found after running updater service with Host1 data")
 	}
-	if v != "IP1" {
-		t.Fatalf("Entry for Host1 not found to be IP2 as set, after running updater service with Host1 data")
+	if v != "10.0.0.1" {
+		t.Fatalf("Entry for Host1 not found to be 10.0.0.1 as set, after running updater service with Host1 data")
 	}
 	v, ok = hostsMap["Host2"]
 	if !ok {
 		t.Fatalf("Entry for Host2 not found after running updater service with Host2 data")
 	}
-	if v != "IP2" {
-		t.Fatalf("Entry for Host1 not found to be IP2 as set, after running updater service with Host1 data")
+	if v != "10.0.0.2" {
+		t.Fatalf("Entry for Host2 not found to be 10.0.0.2 as set, after running updater service with Host2 data")
 	}
 	v, ok = hostsMap["localhost"]
 	if !ok {
@@ -236,11 +237,11 @@ func TestDetectsHostDeletion(t *testing.T) {
 	client.hosts = []metadata.Host{
 		{
 			Hostname: "Host1",
-			AgentIP:  "IP1",
+			AgentIP:  "10.0.0.1",
 		},
 	}
 	upd.Run("")
-	hostsMap, err = parseHostsOrigFile(hostsOrigFile)
+	hostsMap, err = parseHostsOrigFile(testHostsFile)
 	client.lock.Unlock()
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -252,8 +253,8 @@ func TestDetectsHostDeletion(t *testing.T) {
 	if !ok {
 		t.Fatalf("Entry for Host1 not found after running updater service with Host1 data")
 	}
-	if v != "IP1" {
-		t.Fatalf("Entry for Host1 not found to be IP1 as set, after running updater service with Host1 data")
+	if v != "10.0.0.1" {
+		t.Fatalf("Entry for Host1 not found to be 10.0.0.1 as set, after running updater service with Host1 data")
 	}
 	v, ok = hostsMap["localhost"]
 	if !ok {
@@ -265,7 +266,7 @@ func TestDetectsHostDeletion(t *testing.T) {
 }
 
 func parseHostsOrigFile(file string) (map[string]string, error) {
-	data, err := ioutil.ReadFile(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return nil, err
 	}
@@ -282,4 +283,40 @@ func parseHostsOrigFile(file string) (map[string]string, error) {
 		}
 	}
 	return hostsMap, nil
+}
+
+func TestRejectsUnsafeMetadataValues(t *testing.T) {
+	client.lock.Lock()
+	defer client.lock.Unlock()
+
+	client.hosts = []metadata.Host{
+		{
+			Hostname: "good-host",
+			AgentIP:  "10.0.0.10",
+		},
+		{
+			Hostname: "bad\n10.9.9.9 owned",
+			AgentIP:  "10.0.0.11",
+		},
+		{
+			Hostname: "bad-ip",
+			AgentIP:  "not-an-ip",
+		},
+	}
+	upd.knownHosts = map[string]string{}
+	upd.Run("")
+
+	hostsMap, err := parseHostsOrigFile(testHostsFile)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if hostsMap["good-host"] != "10.0.0.10" {
+		t.Fatalf("expected safe host to be written, found %q", hostsMap["good-host"])
+	}
+	if _, ok := hostsMap["owned"]; ok {
+		t.Fatalf("unsafe newline-injected hostname was written")
+	}
+	if _, ok := hostsMap["bad-ip"]; ok {
+		t.Fatalf("host with invalid agent IP was written")
+	}
 }

@@ -3,12 +3,19 @@ set -e
 
 source $(dirname $0)/version
 
-cd $(dirname $0)/../package
+cd $(dirname $0)/..
 
 TAG=${TAG:-${VERSION}}
-REPO=${REPO:-rancher}
+IMAGE_NAME=${IMAGE_NAME:-${REPO:-ghcr.io/pasturestack}/hosts-file-updater}
+GO_VERSION=${GO_VERSION:-1.26.5}
+UBUNTU_VERSION=${UBUNTU_VERSION:-26.04}
+DOCKER_BUILD_NETWORK=${DOCKER_BUILD_NETWORK:-default}
 
-cp ../bin/etc-host-updater .
-docker build -t ${REPO}/etc-host-updater:${TAG} .
+docker build --target runtime \
+    --network "${DOCKER_BUILD_NETWORK}" \
+    --build-arg GO_VERSION="${GO_VERSION}" \
+    --build-arg UBUNTU_VERSION="${UBUNTU_VERSION}" \
+    --build-arg VERSION="${TAG}" \
+    -t "${IMAGE_NAME}:${TAG}" .
 
-echo Built ${REPO}/etc-host-updater:${TAG}
+echo Built "${IMAGE_NAME}:${TAG}"

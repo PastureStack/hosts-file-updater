@@ -6,4 +6,5 @@ source $(dirname $0)/version
 cd $(dirname $0)/..
 
 mkdir -p bin
-CGO_ENABLED=0 go build -tags netgo -ldflags "-X main.VERSION=$VERSION" -o bin/etc-host-updater
+CGO_ENABLED=0 go build -trimpath -tags netgo -ldflags "-s -w -X main.VERSION=$VERSION" -o bin/hosts-file-updater
+ln -sf hosts-file-updater bin/etc-host-updater
