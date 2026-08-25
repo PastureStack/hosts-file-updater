@@ -7,7 +7,7 @@ cd $(dirname $0)/..
 
 TAG=${TAG:-${VERSION}}
 IMAGE_NAME=${IMAGE_NAME:-${REPO:-ghcr.io/pasturestack}/hosts-file-updater}
-GO_VERSION=${GO_VERSION:-1.26.5}
+GO_VERSION=${GO_VERSION:-1.27.0}
 UBUNTU_VERSION=${UBUNTU_VERSION:-26.04}
 DOCKER_BUILD_NETWORK=${DOCKER_BUILD_NETWORK:-default}
 
