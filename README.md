@@ -58,6 +58,10 @@ The maintained container image name is:
 ghcr.io/pasturestack/hosts-file-updater
 ```
 
+This repository currently has no GitHub Release or Catalog-pinned release. The
+unversioned name above identifies the maintained package namespace only; it is
+not a floating production-version promise.
+
 ## Safe Quick Test
 
 The test suite uses an in-process mock metadata server and a temporary hosts
