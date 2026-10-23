@@ -1,6 +1,6 @@
 VERSION ?= $(shell ./scripts/version)
 IMAGE_NAME ?= ghcr.io/pasturestack/hosts-file-updater
-GO_VERSION ?= 1.27.0
+GO_VERSION ?= 1.27.3
 UBUNTU_VERSION ?= 26.04
 DOCKER_BUILD_NETWORK ?= default
 

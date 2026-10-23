@@ -86,3 +86,7 @@ existing `LICENSE` and `NOTICE` files are preserved.
 PastureStack's later modifications do not remove or replace the original
 authors' copyright, attribution, or project history. Exact legal attribution is
 preserved in [NOTICE](NOTICE) and [ORIGIN.md](ORIGIN.md).
+
+## October 2026 security maintenance
+
+Maintained Go builds select the patched Go 1.27.3 compiler without raising the existing Go language requirement. Ubuntu build/runtime stages apply the checksum-pinned `ca-certificates 20260816ubuntu0.26.04.1` security package after their frozen APT baseline; the final trust store and installed version are verified. Release artifacts must pass the repository's existing checks before publication.
