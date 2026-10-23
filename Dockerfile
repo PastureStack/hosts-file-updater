@@ -16,6 +16,8 @@ ADD --checksum=sha256:5b6326f1932cfd7be57130561dc78192f09ed9f58bfbe6606ed0c50510
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH=/usr/local/go/bin:/root/go/bin:$PATH
 
+COPY ubuntu-security-packages.lock /licenses/ubuntu-security-packages.lock
+COPY scripts/install-ubuntu-security-updates /usr/local/libexec/pasturestack/install-ubuntu-security-updates
 ADD --checksum=sha256:5b6326f1932cfd7be57130561dc78192f09ed9f58bfbe6606ed0c50510c3b6cd https://archive.ubuntu.com/ubuntu/pool/main/c/ca-certificates/ca-certificates_20260816ubuntu0.26.04.1_all.deb /opt/pasturestack-ca-certificates.deb
 RUN set -eux; \
     mkdir -p /tmp/ca-bootstrap /etc/ssl/certs; \
@@ -32,6 +34,7 @@ RUN set -eux; \
     && test "$(dpkg-query -W -f='${Version}' ca-certificates)" = '20260816ubuntu0.26.04.1' \
     && test ! -e /usr/share/ca-certificates/mozilla/emSign_ECC_Root_CA_-_G3.crt \
     && rm -f /opt/pasturestack-ca-certificates.deb \
+    && sh /usr/local/libexec/pasturestack/install-ubuntu-security-updates /licenses/ubuntu-security-packages.lock /etc/ssl/certs/ca-certificates.crt \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" -o /tmp/go.tgz \
@@ -60,12 +63,18 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
 
 FROM ${UBUNTU_IMAGE} AS runtime
 ARG VERSION=dev
+ARG REVISION=unknown
+COPY --from=build-base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY ubuntu-security-packages.lock /licenses/ubuntu-security-packages.lock
+COPY scripts/install-ubuntu-security-updates /usr/local/libexec/pasturestack/install-ubuntu-security-updates
+RUN sh /usr/local/libexec/pasturestack/install-ubuntu-security-updates /licenses/ubuntu-security-packages.lock /etc/ssl/certs/ca-certificates.crt
 
 # This legacy-platform sidekick must run as root to rewrite Docker-managed
 # /etc/hosts. See SECURITY.md before changing the runtime user.
 LABEL org.opencontainers.image.title="hosts-file-updater" \
       org.opencontainers.image.description="Metadata-driven hosts file updater maintained by PastureStack" \
       org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.revision="${REVISION}" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.source="https://github.com/PastureStack/hosts-file-updater" \
       org.opencontainers.image.vendor="PastureStack community" \
