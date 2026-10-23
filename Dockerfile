@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 ARG UBUNTU_IMAGE=ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea2648d2c0e09b
-ARG GO_VERSION=1.27.0
-ARG GO_LINUX_AMD64_SHA256=675c26c449cbb18fc24b74650de1eabbae6e16f64326fd85a283fb3b58280685
+ARG GO_VERSION=1.27.3
+ARG GO_LINUX_AMD64_SHA256=65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40
 
 FROM ${UBUNTU_IMAGE} AS build-base
 ARG GO_VERSION
@@ -9,13 +9,14 @@ ARG GO_LINUX_AMD64_SHA256
 ARG TARGETARCH=amd64
 ARG UBUNTU_SNAPSHOT=20260825T000000Z
 
-ADD --checksum=sha256:6077d27c6b6f8b23590cb01ff877ed8c804a67a5442cc32b5a33da10d2bd0e90 \
-    https://snapshot.ubuntu.com/ubuntu/20260825T000000Z/pool/main/c/ca-certificates/ca-certificates_20260601~26.04.1_all.deb \
+ADD --checksum=sha256:5b6326f1932cfd7be57130561dc78192f09ed9f58bfbe6606ed0c50510c3b6cd \
+    https://archive.ubuntu.com/ubuntu/pool/main/c/ca-certificates/ca-certificates_20260816ubuntu0.26.04.1_all.deb \
     /tmp/ca-certificates.deb
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH=/usr/local/go/bin:/root/go/bin:$PATH
 
+ADD --checksum=sha256:5b6326f1932cfd7be57130561dc78192f09ed9f58bfbe6606ed0c50510c3b6cd https://archive.ubuntu.com/ubuntu/pool/main/c/ca-certificates/ca-certificates_20260816ubuntu0.26.04.1_all.deb /opt/pasturestack-ca-certificates.deb
 RUN set -eux; \
     mkdir -p /tmp/ca-bootstrap /etc/ssl/certs; \
     dpkg-deb --extract /tmp/ca-certificates.deb /tmp/ca-bootstrap; \
@@ -26,6 +27,11 @@ RUN set -eux; \
     printf 'Acquire::Retries "5";\nAcquire::https::CaInfo "/etc/ssl/certs/ca-certificates.crt";\nAcquire::https::Verify-Peer "true";\nAcquire::https::Verify-Host "true";\nAcquire::AllowInsecureRepositories "false";\nAPT::Get::AllowUnauthenticated "false";\n' > /etc/apt/apt.conf.d/80pasturestack-snapshot; \
     apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl git build-essential \
+    && dpkg -i /opt/pasturestack-ca-certificates.deb \
+    && update-ca-certificates --fresh \
+    && test "$(dpkg-query -W -f='${Version}' ca-certificates)" = '20260816ubuntu0.26.04.1' \
+    && test ! -e /usr/share/ca-certificates/mozilla/emSign_ECC_Root_CA_-_G3.crt \
+    && rm -f /opt/pasturestack-ca-certificates.deb \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" -o /tmp/go.tgz \
