@@ -55,12 +55,12 @@ bin/etc-host-updater -> hosts-file-updater
 The maintained container image name is:
 
 ```text
-ghcr.io/pasturestack/hosts-file-updater
+ghcr.io/pasturestack/hosts-file-updater:v0.0.4
 ```
 
-This repository currently has no GitHub Release or Catalog-pinned release. The
-unversioned name above identifies the maintained package namespace only; it is
-not a floating production-version promise.
+The current published release is [v0.0.4](https://github.com/PastureStack/hosts-file-updater/releases/tag/v0.0.4).
+Use the numeric image tag above for deployment; it preserves the existing
+metadata and compatibility-command contracts.
 
 ## Safe Quick Test
 
