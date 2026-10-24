@@ -1,6 +1,6 @@
 # PastureStack Hosts File Updater
 
-Linux source candidate **`v0.0.5`** consumes verified Ubuntu security backports without adding runtime packages or changing the host's coreutils provider. Publication and integration checks must complete before deployment.
+Linux runtime **`v0.0.5`** consumes verified Ubuntu security backports without adding packages or changing the existing coreutils provider.
 
 The runtime recipe applies the qualified Ubuntu 26.04 backport bundle only to already-installed packages and preserves the selected coreutils provider. The immutable bundle digest and final-image checks are pending. Bundle manifests, qualification, exact-version OpenVEX, source inputs and install/verify receipts are retained under `/usr/share/pasturestack/security/ubuntu-backports/`; raw scan evidence and the existing full-severity release policy remain required.
 
