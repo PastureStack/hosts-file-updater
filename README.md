@@ -1,5 +1,9 @@
 # PastureStack Hosts File Updater
 
+Linux runtime **`v0.0.5`** consumes verified Ubuntu security backports without adding packages or changing the existing coreutils provider.
+
+The runtime recipe applies the qualified Ubuntu 26.04 backport bundle only to already-installed packages and preserves the selected coreutils provider. The immutable bundle digest and final-image checks are pending. Bundle manifests, qualification, exact-version OpenVEX, source inputs and install/verify receipts are retained under `/usr/share/pasturestack/security/ubuntu-backports/`; raw scan evidence and the existing full-severity release policy remain required.
+
 `hosts-file-updater` populates a managed container's `/etc/hosts` file from a
 legacy metadata service. This repository is maintained by the PastureStack
 community as a compatibility project.
@@ -52,15 +56,13 @@ bin/hosts-file-updater
 bin/etc-host-updater -> hosts-file-updater
 ```
 
-The maintained container image name is:
+The candidate container image coordinate after publication is:
 
 ```text
-ghcr.io/pasturestack/hosts-file-updater:v0.0.4
+ghcr.io/pasturestack/hosts-file-updater:v0.0.5
 ```
 
-The current published release is [v0.0.4](https://github.com/PastureStack/hosts-file-updater/releases/tag/v0.0.4).
-Use the numeric image tag above for deployment; it preserves the existing
-metadata and compatibility-command contracts.
+Use the numeric image tag above after publication; the metadata and compatibility-command contracts are unchanged.
 
 ## Safe Quick Test
 
@@ -98,5 +100,4 @@ finding with an official fix blocks release, regardless of severity. Unknown
 findings block unless a separately reviewed, exact not-affected statement is
 proved by the actual product dependency graph. LOW/MEDIUM findings without an
 official fix require the repository's exact CVE/package/version/PURL review ledger;
-new or changed findings fail closed. This policy-only update does not replace any
-already published immutable artifact.
+new or changed findings fail closed. Each candidate must pass this policy against its exact image and package versions.
