@@ -3,6 +3,8 @@ ARG UBUNTU_IMAGE=ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73
 ARG GO_VERSION=1.27.3
 ARG GO_LINUX_AMD64_SHA256=65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40
 
+ARG UBUNTU_SECURITY_BACKPORTS_IMAGE=ghcr.io/pasturestack/ubuntu-security-backports:v0.1.0@sha256:2742a3d429e4e14bc587f6dedc51ded4246cf90bbaedcd86c67d0885e32a6f2a
+
 FROM ${UBUNTU_IMAGE} AS build-base
 ARG GO_VERSION
 ARG GO_LINUX_AMD64_SHA256
@@ -61,13 +63,29 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
     -ldflags "-s -w -X main.VERSION=${VERSION}" \
     -o /out/hosts-file-updater .
 
+FROM ${UBUNTU_SECURITY_BACKPORTS_IMAGE} AS ubuntu_security_backports
+
 FROM ${UBUNTU_IMAGE} AS runtime
+ARG UBUNTU_SECURITY_BACKPORTS_IMAGE
 ARG VERSION=dev
 ARG REVISION=unknown
 COPY --from=build-base /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY ubuntu-security-packages.lock /licenses/ubuntu-security-packages.lock
 COPY scripts/install-ubuntu-security-updates /usr/local/libexec/pasturestack/install-ubuntu-security-updates
 RUN sh /usr/local/libexec/pasturestack/install-ubuntu-security-updates /licenses/ubuntu-security-packages.lock /etc/ssl/certs/ca-certificates.crt
+
+# Keep the build-only installer and package archives outside the final image.
+RUN --mount=type=bind,from=ubuntu_security_backports,source=/out,target=/opt/pasturestack/ubuntu-security-backports,readonly \
+    set -eux; \
+    evidence=/usr/share/pasturestack/security/ubuntu-backports; \
+    mkdir -p "$evidence"; \
+    /opt/pasturestack/ubuntu-security-backports/install-existing-backports --install-in-docker-build > "$evidence/install.json"; \
+    /opt/pasturestack/ubuntu-security-backports/install-existing-backports --verify-installed > "$evidence/verify.json"; \
+    for file in manifest.json qualification.json source-inputs.lock.json openvex.json; do \
+        cp "/opt/pasturestack/ubuntu-security-backports/$file" "$evidence/$file"; \
+    done; \
+    printf '%s\n' "$UBUNTU_SECURITY_BACKPORTS_IMAGE" > "$evidence/bundle-image.txt"; \
+    (cd "$evidence" && sha256sum manifest.json qualification.json source-inputs.lock.json openvex.json install.json verify.json bundle-image.txt > SHA256SUMS)
 
 # This legacy-platform sidekick must run as root to rewrite Docker-managed
 # /etc/hosts. See SECURITY.md before changing the runtime user.
