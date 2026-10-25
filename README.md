@@ -2,7 +2,7 @@
 
 Linux runtime **`v0.0.5`** consumes verified Ubuntu security backports without adding packages or changing the existing coreutils provider.
 
-The runtime recipe applies the qualified Ubuntu 26.04 backport bundle only to already-installed packages and preserves the selected coreutils provider. The immutable bundle digest and final-image checks are pending. Bundle manifests, qualification, exact-version OpenVEX, source inputs and install/verify receipts are retained under `/usr/share/pasturestack/security/ubuntu-backports/`; raw scan evidence and the existing full-severity release policy remain required.
+The runtime recipe applies the qualified Ubuntu 26.04 backport bundle only to already-installed packages and preserves the selected coreutils provider. The published `v0.0.5` image passed the immutable bundle and final-image checks; see the [release evidence](https://github.com/PastureStack/hosts-file-updater/actions/runs/40140954731). Bundle manifests, qualification, exact-version OpenVEX, source inputs and install/verify receipts are retained under `/usr/share/pasturestack/security/ubuntu-backports/`; raw scan evidence and the existing full-severity release policy remain required.
 
 `hosts-file-updater` populates a managed container's `/etc/hosts` file from a
 legacy metadata service. This repository is maintained by the PastureStack
@@ -56,13 +56,13 @@ bin/hosts-file-updater
 bin/etc-host-updater -> hosts-file-updater
 ```
 
-The candidate container image coordinate after publication is:
+The published container image coordinate is:
 
 ```text
 ghcr.io/pasturestack/hosts-file-updater:v0.0.5
 ```
 
-Use the numeric image tag above after publication; the metadata and compatibility-command contracts are unchanged.
+Use the numeric image tag above; the metadata and compatibility-command contracts are unchanged.
 
 ## Safe Quick Test
 
